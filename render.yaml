@@ -1,0 +1,49 @@
+# Kavalu Labs Security Engine — Render Blueprint
+#
+# One Web Service serves BOTH the dashboard and the API (Flask renders
+# index.html itself), so there is nothing to split.
+#
+# Apply from the Render Dashboard:
+#   New -> Blueprint -> select this repo -> Apply.
+#
+# Docs: RENDER_DEPLOY.md
+
+services:
+  - type: web
+    name: kavalu-labs-security-engine
+    runtime: python
+    plan: 1c-2g          # 1 CPU / 2 GB. Use `free` for the free tier (see notes).
+    region: singapore    # Closest Render region to India. Cannot be changed after creation.
+    numInstances: 1      # REQUIRED: scan state lives in the process, so exactly one instance.
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 16 --timeout 300 app:app
+    healthCheckPath: /api/history
+    maxShutdownDelaySeconds: 120   # Let an in-flight scan finish before SIGKILL.
+
+    envVars:
+      # Render's default is now Python 3.14; the pinned lxml==5.2.1 has no
+      # 3.13/3.14 wheels and would build from source. Pin 3.12.11.
+      - key: PYTHON_VERSION
+        value: "3.12.11"
+      - key: SECRET_KEY
+        generateValue: true
+      # Reports + scan state live on the persistent disk below.
+      - key: KAVALU_DATA_DIR
+        value: /var/data
+
+    disk:
+      name: engine-data
+      mountPath: /var/data
+      sizeGB: 1
+
+# ---------------------------------------------------------------------------
+# FREE TIER ALTERNATIVE
+#
+# Persistent disks are paid-only. To use the free plan, change `plan` to
+# `free` and delete the whole `disk:` block and the KAVALU_DATA_DIR env var.
+# Consequences:
+#   - reports/ and logs/ are wiped on every deploy and every restart
+#   - the instance sleeps after 15 min idle, so the first request is slow
+#   - 512 MB RAM: the Selenium browser module will not fit, use the Docker
+#     image (see RENDER_DEPLOY.md) or a paid plan
+# ---------------------------------------------------------------------------

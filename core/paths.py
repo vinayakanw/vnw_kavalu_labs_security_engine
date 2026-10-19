@@ -15,6 +15,9 @@ All paths are absolute so the engine keeps working regardless of the process
 working directory (Flask dev server, gunicorn, systemd, etc.). On read-only
 filesystems (serverless platforms) the reports directory falls back to a
 writable temporary directory so PDF generation still succeeds.
+
+Set KAVALU_DATA_DIR to relocate REPORTS_DIR / SCAN_STATE_DIR / LOGS_DIR onto a
+mounted persistent volume (Render disk, Docker volume, NFS mount).
 """
 
 __author__ = "Vinayaka N Walshettar"
@@ -24,14 +27,20 @@ import tempfile
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
+#: Writable data root. Defaults to the project directory. Set KAVALU_DATA_DIR
+#: to point reports/ and logs/ at a mounted volume instead — e.g. a Render
+#: persistent disk at /var/data, so deliverables and per-scan state survive
+#: redeploys (on a plain container filesystem both are wiped on every deploy).
+DATA_DIR = os.environ.get('KAVALU_DATA_DIR') or PROJECT_ROOT
+
 #: Deliverable reports — PDF only.
-REPORTS_DIR = os.path.join(PROJECT_ROOT, 'reports')
+REPORTS_DIR = os.path.join(DATA_DIR, 'reports')
 
 #: Internal per-scan state (not a report deliverable).
-SCAN_STATE_DIR = os.path.join(PROJECT_ROOT, 'logs', 'scan_state')
+SCAN_STATE_DIR = os.path.join(DATA_DIR, 'logs', 'scan_state')
 
 #: Runtime logs.
-LOGS_DIR = os.path.join(PROJECT_ROOT, 'logs')
+LOGS_DIR = os.path.join(DATA_DIR, 'logs')
 
 
 def _is_writable(directory: str) -> bool:

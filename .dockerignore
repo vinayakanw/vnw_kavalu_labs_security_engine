@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+.git/
+.gitignore
+.vscode/
+
+# Generated scan outputs and runtime logs — never baked into the image.
+reports/*
+!reports/.gitkeep
+logs/*
+!logs/.gitkeep
+logs/scan_state/
+
+# Test utilities
+test_scan.py
+
+.DS_Store
+Thumbs.db
+*.swp
+*.bak

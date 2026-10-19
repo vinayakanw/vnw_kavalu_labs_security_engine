@@ -164,5 +164,9 @@ if __name__ == '__main__':
     # open connection would block every other request (including the
     # polling fallback) until it finished. For a real deployment, run this
     # behind a proper WSGI server (gunicorn/waitress) with multiple workers
-    # instead of the Flask dev server — see VERCEL_DEPLOY.md.
-    app.run(host='0.0.0.0', port=5000, threaded=True)
+    # instead of the Flask dev server — see VERCEL_DEPLOY.md and
+    # RENDER_DEPLOY.md.
+    # PORT is injected by most PaaS providers (Render, Heroku, Railway);
+    # fall back to 5000 for plain local runs.
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, threaded=True)
