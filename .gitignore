@@ -1,0 +1,34 @@
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment / secrets — NEVER commit these
+.env
+*.env
+.env.local
+.env.production
+
+# Generated scan outputs and runtime logs
+# reports/ holds PDF deliverables only — no HTML, no JSON
+reports/*
+!reports/.gitkeep
+logs/*
+!logs/.gitkeep
+logs/scan_state/
+
+# Developer test utilities
+test_scan.py
+
+# IDE and OS metadata
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+.vscode/
