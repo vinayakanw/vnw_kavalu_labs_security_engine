@@ -1,0 +1,9 @@
+# Development and CI tooling. Runtime dependencies live in requirements.txt.
+-r requirements.txt
+
+pytest==9.2.0
+pytest-cov==7.1.0
+ruff==0.17.3
+pip-audit==2.10.1
+# pre-commit itself needs Python 3.11+; the app and the rest of the tooling support 3.10.
+pre-commit==4.7.0; python_version >= "3.11"

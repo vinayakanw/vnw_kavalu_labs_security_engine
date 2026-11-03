@@ -1,0 +1,101 @@
+name: New detection check
+description: Propose a new vulnerability or misconfiguration check
+title: "[Check]: "
+labels: ["enhancement", "new-check", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Propose the check here **before** writing code. Read the
+        [safety rules](https://github.com/vinayakanw/vnw_kavalu_security_engine/blob/main/CONTRIBUTING.md#safety-rules-for-checks)
+        and the [extending guide](https://github.com/vinayakanw/vnw_kavalu_security_engine/blob/main/docs/extending.md).
+
+  - type: input
+    id: name
+    attributes:
+      label: Weakness name
+      placeholder: "Directory listing enabled"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: owasp
+    attributes:
+      label: OWASP Top 10:2021 category
+      options:
+        - A01 Broken Access Control
+        - A02 Cryptographic Failures
+        - A03 Injection
+        - A04 Insecure Design
+        - A05 Security Misconfiguration
+        - A06 Vulnerable and Outdated Components
+        - A07 Identification and Authentication Failures
+        - A08 Software and Data Integrity Failures
+        - A09 Security Logging and Monitoring Failures
+        - A10 Server-Side Request Forgery
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: cwe
+    attributes:
+      label: CWE identifier(s)
+      placeholder: "CWE-548"
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What does it detect, and why does it matter?
+    validations:
+      required: true
+
+  - type: textarea
+    id: how
+    attributes:
+      label: How would the check work?
+      description: The exact request(s) it sends and the response condition that makes it fire. Keep it deterministic and bounded.
+      placeholder: |
+        Request: GET /<path> with an 8 s timeout
+        Fires when: status 200 and the body contains "Index of /"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Proposed severity
+      options:
+        - critical
+        - high
+        - medium
+        - low
+        - info
+    validations:
+      required: true
+
+  - type: textarea
+    id: false-positives
+    attributes:
+      label: False-positive considerations
+      description: When could this fire incorrectly (for example on single-page apps that return 200 for every path)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      placeholder: "OWASP, CWE entry, advisories, vendor documentation"
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety
+      options:
+        - label: The check is non-destructive and sends a bounded number of requests
+          required: true
+        - label: The check contacts only the target (no third-party services)
+          required: true
+        - label: I searched existing issues and the catalog in docs/checks.md
+          required: true

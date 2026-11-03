@@ -1,0 +1,8 @@
+# Code owners are requested for review automatically.
+# https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+*                           @vinayakanw
+/.github/                   @vinayakanw
+/SECURITY.md                @vinayakanw
+/core/owasp_mapping.py      @vinayakanw
+/core/detection_engine.py   @vinayakanw

@@ -1,0 +1,101 @@
+name: Bug report
+description: Something does not work as documented
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+        **Security vulnerability in this project?** Do not file it here. Use
+        [private reporting](https://github.com/vinayakanw/vnw_kavalu_security_engine/security/advisories/new).
+
+        Please check the
+        [troubleshooting guide](https://github.com/vinayakanw/vnw_kavalu_security_engine/blob/main/docs/troubleshooting.md)
+        and search existing issues first.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: The smallest set of steps that triggers the problem. Use a placeholder instead of any real target URL.
+      placeholder: |
+        1. Start the engine with `make run`
+        2. Scan `https://example.test/?q=1` with scan_types ["owasp"]
+        3. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Detection check (false positive / false negative)
+        - Scoring or OWASP mapping
+        - Report (PDF / HTML / JSON)
+        - API or live progress (SSE)
+        - Dashboard (UI)
+        - Docker / deployment
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Engine version or commit
+      description: Output of `git rev-parse --short HEAD`, or the release tag.
+      placeholder: "v2.0.0 or a1b2c3d"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: how-run
+    attributes:
+      label: How are you running it?
+      options:
+        - Locally (flask run)
+        - Locally (python app.py)
+        - Docker
+        - Render
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Python version and operating system
+      placeholder: "Python 3.12.3, Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or finding JSON
+      description: Remove secrets and private hostnames first.
+      render: shell
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and the troubleshooting guide
+          required: true
+        - label: This is not a security vulnerability in the project (those go through private reporting)
+          required: true
+        - label: I removed secrets, private hostnames and real target data from this report
+          required: true

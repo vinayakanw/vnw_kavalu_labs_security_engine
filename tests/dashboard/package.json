@@ -1,0 +1,16 @@
+{
+  "name": "kavalu-dashboard-tests",
+  "private": true,
+  "description": "Browser-level tests for the dashboard. Development only; the application itself needs no Node.js.",
+  "type": "module",
+  "scripts": {
+    "test": "node dashboard.test.mjs"
+  },
+  "devDependencies": {
+    "eventsource": "5.1.4",
+    "jsdom": "30.1.3"
+  },
+  "engines": {
+    "node": ">=22.22.2"
+  }
+}

@@ -1,41 +1,15 @@
-"""
-External Model Plugin
------------------------
-Kavalu Labs' own checks (vulnerability_scanner.py, tls_scanner.py, etc.) are
-deterministic, rule-based, and explainable on purpose — that's what a
-defensive security report needs to be auditable.
+"""Optional external ML model plugin.
 
-This module is the integration point for teams that *also* want to run a
-trained ML vulnerability-classification model (for example: a self-hosted
-build of youpengl/OpenVul, ivan-si/VulnLLM, or neerajagopinath's
-ai-security-copilot BiLSTM/GraphCodeBERT service) over source retrieved from
-the target during a scan — typically page HTML, inline <script> bodies, or
-linked JS bundles that are publicly fetchable anyway.
+Off unless ``EXTERNAL_MODEL_URL`` is set. When on, inline ``<script>`` bodies from the
+target page are sent to a model service that you host, and its verdicts are merged
+into the normal findings. A missing or failing service is ignored, never an error.
 
-Why this is a plugin and not a bundled model:
-Those three projects are research training pipelines / classifiers trained
-on source-code datasets (Devign, etc.) for C/C++ and Python *functions* —
-not web-URL scanners — and two of them need multi-GPU training before they
-produce a usable model at all. None of that is runnable inside a chat
-sandbox. The honest, useful integration is: host the inference service
-yourself (each repo documents how), point `EXTERNAL_MODEL_URL` at it, and
-Kavalu Labs will call it per scan and fold its verdicts into the same
-findings/OWASP/report pipeline as everything else — no separate UI, no
-separate report.
+Environment variables (all optional):
+    EXTERNAL_MODEL_URL       for example http://localhost:8000/analyze
+    EXTERNAL_MODEL_API_KEY   sent as ``Authorization: Bearer <key>`` when set
+    EXTERNAL_MODEL_TIMEOUT   seconds to wait, default 8
 
-Configuration (environment variables, all optional):
-    EXTERNAL_MODEL_URL       e.g. http://localhost:8000/analyze
-    EXTERNAL_MODEL_API_KEY   sent as `Authorization: Bearer <key>` if set
-    EXTERNAL_MODEL_TIMEOUT   seconds, default 8
-
-Expected endpoint contract (matches ai-security-copilot's /analyze shape):
-    POST {EXTERNAL_MODEL_URL}
-    Request:  {"source": "<code or script text>", "language": "javascript"}
-    Response: {"findings": [
-        {"title": "...", "severity": "high", "description": "...",
-         "category": "command_injection", "confidence": 0.82}
-    ]}
-A non-responding or unconfigured endpoint is a no-op, not an error.
+The request and response format is described in docs/configuration.md.
 """
 
 __author__ = "Kavalu Labs"
@@ -74,7 +48,7 @@ class ExternalModelPlugin:
 
     def analyze_snippets(self, snippets: List[Dict[str, str]]) -> List[Dict[str, Any]]:
         """snippets: [{'source': '<code>', 'language': 'javascript', 'origin': 'inline <script> #2'}]
-        Returns findings in the standard Kavalu Labs finding schema. Never
+        Returns findings in the standard Kavalu finding schema. Never
         raises — any failure degrades to an empty list plus one informational
         finding noting the plugin was unreachable, so a scan never fails
         because the optional model endpoint is down.
@@ -100,30 +74,34 @@ class ExternalModelPlugin:
                 payload = resp.json()
                 for item in payload.get("findings", []):
                     category = item.get("category", "misconfiguration")
-                    findings.append({
-                        "type": "external_model",
-                        "severity": item.get("severity", "info"),
-                        "title": f"[External Model] {item.get('title', 'Code pattern flagged')}",
-                        "description": item.get("description", ""),
-                        "details": {
-                            "origin": snippet.get("origin", "unknown"),
-                            "model_category": category,
-                            "confidence": item.get("confidence"),
-                            "mapped_type": _CATEGORY_TO_TYPE.get(category, "misconfiguration"),
-                        },
-                        "remediation": item.get("remediation", "Review the flagged code pattern manually."),
-                    })
+                    findings.append(
+                        {
+                            "type": "external_model",
+                            "severity": item.get("severity", "info"),
+                            "title": f"[External Model] {item.get('title', 'Code pattern flagged')}",
+                            "description": item.get("description", ""),
+                            "details": {
+                                "origin": snippet.get("origin", "unknown"),
+                                "model_category": category,
+                                "confidence": item.get("confidence"),
+                                "mapped_type": _CATEGORY_TO_TYPE.get(category, "misconfiguration"),
+                            },
+                            "remediation": item.get("remediation", "Review the flagged code pattern manually."),
+                        }
+                    )
             except requests.exceptions.RequestException:
                 continue
 
         if not findings and self.enabled:
-            findings.append({
-                "type": "external_model",
-                "severity": "info",
-                "title": "External Model Plugin Configured But Returned No Findings",
-                "description": f"EXTERNAL_MODEL_URL is set ({self.url}) but the service returned no "
-                                "findings or was unreachable during this scan.",
-                "details": {"endpoint": self.url},
-            })
+            findings.append(
+                {
+                    "type": "external_model",
+                    "severity": "info",
+                    "title": "External Model Plugin Configured But Returned No Findings",
+                    "description": f"EXTERNAL_MODEL_URL is set ({self.url}) but the service returned no "
+                    "findings or was unreachable during this scan.",
+                    "details": {"endpoint": self.url},
+                }
+            )
 
         return findings

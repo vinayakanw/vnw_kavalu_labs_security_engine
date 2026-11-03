@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 240" width="1200" height="240" role="img" aria-labelledby="t d">
+  <title id="t">Kavalu Security Engine</title>
+  <desc id="d">Web application security assessment, mapped to the OWASP Top 10:2021</desc>
+
+  <rect x="0.5" y="0.5" width="1199" height="239" rx="12" fill="#0A0A0A" stroke="#2A2A27"/>
+
+  <!-- Shield mark -->
+  <g transform="translate(96 54)" fill="none" stroke="#FF0000" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M42 0 L84 14 V54 C84 86 66 106 42 118 C18 106 0 86 0 54 V14 Z"/>
+    <path d="M24 58 L37 71 L62 44"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g font-family="'Helvetica Neue', Helvetica, Arial, 'Liberation Sans', sans-serif">
+    <text x="228" y="108" font-size="52" font-weight="700" fill="#FFFFFF" letter-spacing="-0.5">Kavalu Security Engine</text>
+    <rect x="230" y="128" width="56" height="3" fill="#FF0000"/>
+    <text x="228" y="168" font-size="22" fill="#A3A39B">Web application security assessment, mapped to the OWASP Top 10:2021</text>
+  </g>
+</svg>

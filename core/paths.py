@@ -24,6 +24,7 @@ __author__ = "Vinayaka N Walshettar"
 
 import os
 import tempfile
+import uuid
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
@@ -31,25 +32,25 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir
 #: to point reports/ and logs/ at a mounted volume instead — e.g. a Render
 #: persistent disk at /var/data, so deliverables and per-scan state survive
 #: redeploys (on a plain container filesystem both are wiped on every deploy).
-DATA_DIR = os.environ.get('KAVALU_DATA_DIR') or PROJECT_ROOT
+DATA_DIR = os.environ.get("KAVALU_DATA_DIR") or PROJECT_ROOT
 
 #: Deliverable reports — PDF only.
-REPORTS_DIR = os.path.join(DATA_DIR, 'reports')
+REPORTS_DIR = os.path.join(DATA_DIR, "reports")
 
 #: Internal per-scan state (not a report deliverable).
-SCAN_STATE_DIR = os.path.join(DATA_DIR, 'logs', 'scan_state')
+SCAN_STATE_DIR = os.path.join(DATA_DIR, "logs", "scan_state")
 
 #: Runtime logs.
-LOGS_DIR = os.path.join(DATA_DIR, 'logs')
+LOGS_DIR = os.path.join(DATA_DIR, "logs")
 
 
 def _is_writable(directory: str) -> bool:
     """True when the directory exists (or can be created) and accepts writes."""
     try:
         os.makedirs(directory, exist_ok=True)
-        probe = os.path.join(directory, '.write_probe')
-        with open(probe, 'w', encoding='utf-8') as probe_file:
-            probe_file.write('ok')
+        probe = os.path.join(directory, ".write_probe")
+        with open(probe, "w", encoding="utf-8") as probe_file:
+            probe_file.write("ok")
         os.remove(probe)
         return True
     except Exception:
@@ -60,7 +61,7 @@ def _resolve_reports_dir() -> str:
     """Return the reports directory, falling back to a temp dir if read-only."""
     if _is_writable(REPORTS_DIR):
         return REPORTS_DIR
-    fallback = os.path.join(tempfile.gettempdir(), 'kavalu_labs_security_engine', 'reports')
+    fallback = os.path.join(tempfile.gettempdir(), "kavalu_security_engine", "reports")
     os.makedirs(fallback, exist_ok=True)
     return fallback
 
@@ -85,4 +86,8 @@ def report_path(filename: str) -> str:
 
 def scan_state_path(scan_id: str) -> str:
     """Absolute path of the state file backing a given scan id."""
-    return os.path.join(SCAN_STATE_DIR, f'scan_{scan_id}.json')
+    try:
+        normalized_id = str(uuid.UUID(scan_id))
+    except (AttributeError, TypeError, ValueError) as error:
+        raise ValueError("Invalid scan ID") from error
+    return os.path.join(SCAN_STATE_DIR, f"scan_{normalized_id}.json")
