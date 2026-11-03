@@ -8,7 +8,7 @@
 # (CI also runs 3.10 and 3.11). Move to a newer minor only after adding it to
 # the CI matrix in .github/workflows/ci.yml.
 
-FROM python:3.12-slim-bookworm
+FROM python:3.15-slim-bookworm
 
 LABEL org.opencontainers.image.title="Kavalu Security Engine" \
       org.opencontainers.image.description="Web application security assessment engine with an OWASP Top 10:2021 mapped dashboard and API" \
