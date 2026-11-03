@@ -54,6 +54,7 @@ class TLSScanner:
 
         try:
             ctx = ssl.create_default_context()
+            ctx.minimum_version = ssl.TLSVersion.TLSv1_2
             addresses = validate_target_url(target_url)
             connect_addresses = (hostname,) if addresses is None else addresses
             last_connection_error = None
@@ -92,6 +93,24 @@ class TLSScanner:
                     "remediation": "Install a valid certificate from a trusted CA covering the "
                     "exact hostname, and ensure the full chain (including "
                     "intermediates) is served.",
+                }
+            )
+        except ssl.SSLError:
+            findings.append(
+                {
+                    "type": "tls_version",
+                    "severity": "info",
+                    "title": "TLS 1.2+ Handshake Could Not Be Completed",
+                    "description": (
+                        "The scanner requires TLS 1.2 or newer. The server may require a "
+                        "deprecated TLS version, but this was not confirmed because the "
+                        "scanner does not negotiate weaker protocols."
+                    ),
+                    "details": {
+                        "minimum_protocol": "TLSv1.2",
+                        "legacy_protocol_confirmed": False,
+                    },
+                    "remediation": "Enable TLS 1.2 or newer and verify the endpoint is reachable.",
                 }
             )
         except (socket.timeout, socket.gaierror, ConnectionRefusedError, OSError) as e:

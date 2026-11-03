@@ -91,8 +91,8 @@ class SecurityScanner:
 
         try:
             validated_addresses = validate_target_url(target_url)
-        except TargetPolicyError as error:
-            return False, str(error), None
+        except TargetPolicyError:
+            return False, "Target was blocked by the configured network policy.", None
 
         # 1. DNS Resolution Check
         port = parsed.port or (443 if parsed.scheme == "https" else 80)
@@ -121,8 +121,8 @@ class SecurityScanner:
                 allow_redirects=True,
                 headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) KavaluSecurityEngine/2.0"},
             )
-        except TargetPolicyError as error:
-            return False, str(error), None
+        except TargetPolicyError:
+            return False, "Target was blocked by the configured network policy.", None
         except requests.exceptions.SSLError:
             # Server responded, but SSL certificate has an issue (self-signed/expired).
             # This is a valid live target to scan for vulnerabilities.

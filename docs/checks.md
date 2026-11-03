@@ -55,14 +55,14 @@ Header checks only run when `recon` is selected.
 | Check | Finding type | Severity |
 |---|---|---|
 | Target is plain HTTP (the handshake is skipped) | `no_https` | high |
-| Negotiated protocol is SSLv2/SSLv3/TLS 1.0/TLS 1.1 | `tls_version` | high |
 | Negotiated protocol is current (TLS 1.2/1.3) | `tls_version` | info |
+| TLS 1.2+ handshake fails (a deprecated version may be required; not confirmed) | `tls_version` | info |
 | Certificate expired | `tls_certificate` | critical |
 | Certificate fails verification | `tls_certificate` | critical |
 | Certificate expires within 30 days | `tls_certificate` | medium |
 | Certificate valid; certificate details; handshake could not complete | `tls_certificate` | info |
 
-It performs **one** handshake and records the protocol that was negotiated. It does **not** enumerate cipher suites.
+It performs **one** handshake with TLS 1.2 as the minimum and records the negotiated protocol. It does **not** retry with deprecated TLS versions or enumerate cipher suites.
 
 ### Misconfiguration and exposure: `misconfig`
 

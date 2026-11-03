@@ -7,6 +7,7 @@ import pytest
 import requests
 
 from core import scanner as scanner_module
+from core.network_policy import TargetPolicyError
 from core.scanner import SecurityScanner
 
 validate = SecurityScanner.validate_target
@@ -93,6 +94,21 @@ def test_bad_certificate_is_still_a_valid_scan_target(network, monkeypatch):
     # A broken TLS setup is exactly the kind of site this tool should audit.
     monkeypatch.setattr(scanner_module, "guarded_request", _raise(requests.exceptions.SSLError("bad cert")))
     assert validate("https://self-signed.example") == (True, "", None)
+
+
+@pytest.mark.parametrize("failure_stage", ["url validation", "request"])
+def test_target_policy_exception_details_are_not_returned(network, monkeypatch, failure_stage):
+    exception = TargetPolicyError("internal network-policy detail")
+    if failure_stage == "url validation":
+        monkeypatch.setattr(scanner_module, "validate_target_url", _raise(exception))
+    else:
+        monkeypatch.setattr(scanner_module, "guarded_request", _raise(exception))
+
+    ok, message, code = validate("https://example.com")
+
+    assert (ok, code) == (False, None)
+    assert message == "Target was blocked by the configured network policy."
+    assert "internal network-policy detail" not in message
 
 
 @pytest.mark.parametrize("status", [500, 502, 503, 504])

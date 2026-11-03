@@ -52,6 +52,8 @@ def test_public_tls_scan_connects_to_pinned_ip_and_preserves_hostname_sni(monkey
             connection["server_hostname"] = server_hostname
             return FakeSSLSocket()
 
+    context = FakeContext()
+
     def connect(address, port, timeout=None):
         connection["address"] = address
         connection["port"] = port
@@ -59,16 +61,45 @@ def test_public_tls_scan_connects_to_pinned_ip_and_preserves_hostname_sni(monkey
 
     monkeypatch.setattr(tls_scanner_module, "validate_target_url", lambda url: ("93.184.216.34",))
     monkeypatch.setattr(tls_scanner_module, "connect_validated_address", connect)
-    monkeypatch.setattr(tls_scanner_module.ssl, "create_default_context", FakeContext)
+    monkeypatch.setattr(tls_scanner_module.ssl, "create_default_context", lambda: context)
 
     findings = TLSScanner().scan("https://safe.example/")
 
+    assert context.minimum_version == tls_scanner_module.ssl.TLSVersion.TLSv1_2
     assert connection == {
         "address": "93.184.216.34",
         "port": 443,
         "server_hostname": "safe.example",
     }
     assert findings[0]["type"] == "tls_version"
+
+
+def test_tls_protocol_failure_does_not_retry_with_legacy_protocols(monkeypatch):
+    class FakeSocket:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+    class FakeContext:
+        def wrap_socket(self, sock, server_hostname):
+            raise tls_scanner_module.ssl.SSLError("legacy protocol detail")
+
+    context = FakeContext()
+    monkeypatch.setattr(tls_scanner_module, "validate_target_url", lambda url: None)
+    monkeypatch.setattr(tls_scanner_module.socket, "create_connection", lambda *args, **kwargs: FakeSocket())
+    monkeypatch.setattr(tls_scanner_module.ssl, "create_default_context", lambda: context)
+
+    (finding,) = TLSScanner().scan("https://safe.example/")
+
+    assert context.minimum_version == tls_scanner_module.ssl.TLSVersion.TLSv1_2
+    assert finding["type"] == "tls_version"
+    assert finding["details"] == {
+        "minimum_protocol": "TLSv1.2",
+        "legacy_protocol_confirmed": False,
+    }
+    assert "legacy protocol detail" not in repr(finding)
 
 
 @pytest.mark.parametrize("protocol", sorted(WEAK_PROTOCOLS))
