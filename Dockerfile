@@ -1,13 +1,20 @@
-# Kavalu Labs Security Engine — container image
+# Kavalu Security Engine — container image
 #
 # Use this when you want the Selenium browser module to work (headless
 # Chromium) on the host. On Render: set `runtime: docker` in render.yaml and
 # Render will build this file instead of using the native Python runtime.
 #
-# Python is pinned to 3.12 because the pinned lxml==5.2.1 has no wheels for
-# 3.13+ and would compile from source.
+# Python 3.12 is the version the test suite and CI exercise most closely
+# (CI also runs 3.10 and 3.11). Move to a newer minor only after adding it to
+# the CI matrix in .github/workflows/ci.yml.
 
 FROM python:3.12-slim-bookworm
+
+LABEL org.opencontainers.image.title="Kavalu Security Engine" \
+      org.opencontainers.image.description="Web application security assessment engine with an OWASP Top 10:2021 mapped dashboard and API" \
+      org.opencontainers.image.source="https://github.com/vinayakanw/vnw_kavalu_labs_security_engine" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.authors="Vinayaka N Walshettar <https://www.nayaka100.in/>"
 
 # Chromium + driver for the DOM/console browser module, plus the shared
 # libraries headless Chrome needs on Debian.
@@ -42,6 +49,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 EXPOSE 10000
+
+# Marks the container unhealthy if the API stops answering. Uses Python because
+# curl is not installed in the slim base image.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD ["python", "-c", "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/api/history' % os.environ.get('PORT', '10000'), timeout=3)"]
 
 # --workers 1: scan state lives in the process (core/scanner.py active_scans).
 # --threads 16: each SSE connection (/api/scan/stream) occupies a thread.

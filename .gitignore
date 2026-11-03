@@ -23,6 +23,18 @@ logs/*
 !logs/.gitkeep
 logs/scan_state/
 
+# Test, lint and coverage caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Packaging / build output
+build/
+dist/
+*.egg-info/
+
 # Developer test utilities
 test_scan.py
 
@@ -32,3 +44,7 @@ Thumbs.db
 *.swp
 *.bak
 .vscode/
+.idea/
+
+# Node tooling for the dashboard tests
+node_modules/

@@ -1,22 +1,8 @@
-"""
-Kavalu Labs Detection Engine
------------------------------
-A transparent, explainable risk-scoring layer sitting on top of every raw
-finding produced by the scanner modules (header/config checks, injection
-probes, TLS checks, recon/attribution, and — if configured — an external
-model via core.plugin_model).
+"""Risk scoring: a 0-100 score, a letter grade and a breakdown for a list of findings.
 
-Design note (read this before assuming it's a neural network):
-This is a deterministic, weighted rule engine, not a trained deep-learning
-classifier. Severity weights below are informed by CVSS-style impact/
-likelihood reasoning and by the OWASP Top 10 ordering, and every score is
-fully explainable finding-by-finding — which is the property a security
-report actually needs (auditable, reproducible, no black box). If you want
-to plug in an ML model trained on real vulnerability datasets (the research
-projects this build reviewed — OpenVul, VulnLLM, and the ai-security-copilot
-BiLSTM/GraphCodeBERT classifiers — are examples), host it separately and
-wire it in through `core/plugin_model.py`; its output is merged in here as
-just another set of findings, weighted the same way as everything else.
+This is a fixed, documented formula (see docs/architecture.md), not a
+machine-learning model. The same findings always give the same score, and every
+point of the score can be traced back to a finding.
 """
 
 __author__ = "Kavalu Labs"
@@ -78,16 +64,18 @@ def score_findings(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
             continue
 
         n = seen_of_severity[sev]
-        decay = 0.6 ** n  # each additional same-severity finding counts for 60% of the prior one
+        decay = 0.6**n  # each additional same-severity finding counts for 60% of the prior one
         contribution = round(base * decay, 2)
         seen_of_severity[sev] += 1
 
         raw_total += contribution
-        contributions.append({
-            "title": f.get("title", "Finding"),
-            "severity": sev,
-            "contribution": contribution,
-        })
+        contributions.append(
+            {
+                "title": f.get("title", "Finding"),
+                "severity": sev,
+                "contribution": contribution,
+            }
+        )
 
     score = min(100.0, round(raw_total, 1))
     grading = _grade_for_score(score)
@@ -147,16 +135,20 @@ def summarize_engine_modules(scan_types: List[str], used_external_model: bool) -
             "description": "Traffic forwarding and analysis via a local Burp Suite proxy.",
         },
         {
-            "name": "Kavalu Labs Detection Engine",
+            "name": "Kavalu Detection Engine",
             "ran": True,
-            "description": "Deterministic weighted risk-scoring and OWASP Top 10:2021 mapping "
-                           "of every finding above.",
+            "description": "Deterministic weighted risk-scoring and OWASP Top 10:2021 mapping of every finding above.",
         },
     ]
     if used_external_model:
-        modules.insert(6, {
-            "name": "External Model Plugin",
-            "ran": True,
-            "description": "Bring-your-own inference endpoint for source/code-level ML vulnerability classification.",
-        })
+        modules.insert(
+            6,
+            {
+                "name": "External Model Plugin",
+                "ran": True,
+                "description": (
+                    "Bring-your-own inference endpoint for source/code-level ML vulnerability classification."
+                ),
+            },
+        )
     return modules

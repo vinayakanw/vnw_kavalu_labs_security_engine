@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question or share an idea
+    url: https://github.com/vinayakanw/vnw_kavalu_security_engine/discussions
+    about: Usage questions and open-ended ideas belong in Discussions, not Issues.
+  - name: Report a security vulnerability
+    url: https://github.com/vinayakanw/vnw_kavalu_security_engine/security/advisories/new
+    about: Report vulnerabilities in this project PRIVATELY. Never open a public issue for one.
+  - name: Troubleshooting guide
+    url: https://github.com/vinayakanw/vnw_kavalu_security_engine/blob/main/docs/troubleshooting.md
+    about: Common problems and their fixes.

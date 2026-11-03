@@ -1,4 +1,4 @@
-"""Core security scanning modules."""
+"""The scanning engine: orchestrator, check modules, scoring and reports."""
 
 __author__ = "Kavalu Labs"
 
@@ -12,12 +12,7 @@ try:
 except ImportError:
     SeleniumScanner = None
 
-__all__ = [
-    'SecurityScanner',
-    'VulnerabilityScanner',
-    'BurpIntegration',
-    'ReportGenerator'
-]
+__all__ = ["SecurityScanner", "VulnerabilityScanner", "BurpIntegration", "ReportGenerator"]
 
 if SeleniumScanner:
-    __all__.append('SeleniumScanner')
+    __all__.append("SeleniumScanner")

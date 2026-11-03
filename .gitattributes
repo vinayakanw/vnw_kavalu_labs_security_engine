@@ -1,0 +1,10 @@
+# Normalise line endings so Windows and Linux contributors produce identical diffs.
+* text=auto eol=lf
+
+*.sh text eol=lf
+Makefile text eol=lf
+
+# Binary assets: never diff or normalise.
+*.png binary
+*.pdf binary
+*.ico binary

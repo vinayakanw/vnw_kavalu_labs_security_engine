@@ -7,7 +7,26 @@ env/
 
 .git/
 .gitignore
+.gitattributes
+.github/
 .vscode/
+.idea/
+
+# Not needed at runtime
+tests/
+docs/
+Makefile
+.editorconfig
+.pre-commit-config.yaml
+requirements-dev.txt
+pyproject.toml
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.env
+.env.*
+!.env.example
 
 # Generated scan outputs and runtime logs — never baked into the image.
 reports/*

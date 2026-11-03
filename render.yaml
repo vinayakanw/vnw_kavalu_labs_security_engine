@@ -1,4 +1,4 @@
-# Kavalu Labs Security Engine — Render Blueprint
+# Kavalu Security Engine — Render Blueprint
 #
 # One Web Service serves BOTH the dashboard and the API (Flask renders
 # index.html itself), so there is nothing to split.
@@ -6,7 +6,7 @@
 # Apply from the Render Dashboard:
 #   New -> Blueprint -> select this repo -> Apply.
 #
-# Docs: RENDER_DEPLOY.md
+# Docs: docs/deployment.md
 
 services:
   - type: web
@@ -21,8 +21,8 @@ services:
     maxShutdownDelaySeconds: 120   # Let an in-flight scan finish before SIGKILL.
 
     envVars:
-      # Render's default is now Python 3.14; the pinned lxml==5.2.1 has no
-      # 3.13/3.14 wheels and would build from source. Pin 3.12.11.
+      # Render's default Python may be newer than what this project's CI
+      # tests (3.10 - 3.12). Pin a tested version for reproducible builds.
       - key: PYTHON_VERSION
         value: "3.12.11"
       - key: SECRET_KEY
@@ -45,5 +45,5 @@ services:
 #   - reports/ and logs/ are wiped on every deploy and every restart
 #   - the instance sleeps after 15 min idle, so the first request is slow
 #   - 512 MB RAM: the Selenium browser module will not fit, use the Docker
-#     image (see RENDER_DEPLOY.md) or a paid plan
+#     image (see docs/deployment.md) or a paid plan
 # ---------------------------------------------------------------------------

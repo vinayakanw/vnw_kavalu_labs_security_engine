@@ -1,0 +1,76 @@
+name: Docker
+
+# Builds the image and boots it, so a broken Dockerfile or a container that
+# starts but does not serve fails the pull request, not production.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "requirements.txt"
+      - "app.py"
+      - "index.html"
+      - "core/**"
+      - ".github/workflows/docker.yml"
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "requirements.txt"
+      - "app.py"
+      - "index.html"
+      - "core/**"
+      - ".github/workflows/docker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          push: false
+          tags: kavalu-security-engine:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Start container
+        run: docker run -d --name engine -p 10000:10000 kavalu-security-engine:ci
+
+      - name: Wait for the API and check the endpoints
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:10000/api/history; then
+              echo; break
+            fi
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:10000/api/history | grep -qx '\[\]'
+          curl -fsS http://127.0.0.1:10000/api/owasp-top10 | grep -q 'A01:2021'
+          curl -fsS -o /dev/null http://127.0.0.1:10000/
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs engine
+
+      - name: Clean up
+        if: always()
+        run: docker rm -f engine

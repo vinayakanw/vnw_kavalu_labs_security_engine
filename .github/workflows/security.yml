@@ -1,0 +1,40 @@
+name: Dependency audit
+
+# Kept separate from CI on purpose: a newly published advisory must not turn
+# every unrelated pull request red. It runs when dependencies change, weekly,
+# and on demand.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "requirements*.txt"
+      - ".github/workflows/security.yml"
+  pull_request:
+    paths:
+      - "requirements*.txt"
+      - ".github/workflows/security.yml"
+  schedule:
+    - cron: "17 5 * * 1"   # Mondays 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pip-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit
+        run: pip install pip-audit==2.10.1
+
+      - name: Audit pinned runtime dependencies
+        run: pip-audit -r requirements.txt --no-deps --disable-pip

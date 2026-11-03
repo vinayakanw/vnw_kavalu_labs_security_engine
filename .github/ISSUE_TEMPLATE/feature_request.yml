@@ -1,0 +1,51 @@
+name: Feature request
+description: Suggest an improvement or a new capability
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please describe the **problem** first. A clear problem makes it much easier to find a good solution.
+        For a new detection check, use the "New detection check" template instead.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      placeholder: "When I scan X, I cannot Y, which means Z."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should the engine do? Include API or UI examples if relevant.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches, or workarounds you use today.
+
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Would you like to implement it?
+      options:
+        - "Yes, I would open a pull request"
+        - "Maybe, with some guidance"
+        - "No, I am only suggesting it"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and the roadmap (ROADMAP.md)
+          required: true
