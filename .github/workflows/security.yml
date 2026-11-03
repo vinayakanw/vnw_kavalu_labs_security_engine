@@ -1,8 +1,7 @@
 name: Dependency audit
 
-# Kept separate from CI on purpose: a newly published advisory must not turn
-# every unrelated pull request red. It runs when dependencies change, weekly,
-# and on demand.
+# Run on every pull request so the required status check is always reported.
+# On main, run for dependency or workflow changes, weekly, and on demand.
 
 on:
   push:
@@ -11,9 +10,6 @@ on:
       - "requirements*.txt"
       - ".github/workflows/security.yml"
   pull_request:
-    paths:
-      - "requirements*.txt"
-      - ".github/workflows/security.yml"
   schedule:
     - cron: "17 5 * * 1"   # Mondays 05:17 UTC
   workflow_dispatch:

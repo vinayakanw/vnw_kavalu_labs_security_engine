@@ -12,7 +12,7 @@ FROM python:3.12-slim-bookworm
 
 LABEL org.opencontainers.image.title="Kavalu Security Engine" \
       org.opencontainers.image.description="Web application security assessment engine with an OWASP Top 10:2021 mapped dashboard and API" \
-      org.opencontainers.image.source="https://github.com/vinayakanw/vnw_kavalu_labs_security_engine" \
+      org.opencontainers.image.source="https://github.com/vinayakanw/vnw_kavalu_security_engine" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.authors="Vinayaka N Walshettar <https://www.nayaka100.in/>"
 
