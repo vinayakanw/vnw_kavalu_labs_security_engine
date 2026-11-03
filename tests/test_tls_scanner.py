@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+from core import tls_scanner as tls_scanner_module
 from core.tls_scanner import CERT_EXPIRY_WARNING_DAYS, WEAK_PROTOCOLS, TLSScanner
 
 scanner = TLSScanner()
@@ -27,6 +28,47 @@ def test_plain_http_target_is_a_high_finding_and_skips_the_handshake():
     findings = scanner.scan("http://example.test/")
     assert [f["type"] for f in findings] == ["no_https"]
     assert findings[0]["severity"] == "high"
+
+
+def test_public_tls_scan_connects_to_pinned_ip_and_preserves_hostname_sni(monkeypatch):
+    connection = {}
+
+    class FakeSocket:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+    class FakeSSLSocket(FakeSocket):
+        def getpeercert(self):
+            return {}
+
+        def version(self):
+            return "TLSv1.3"
+
+    class FakeContext:
+        def wrap_socket(self, sock, server_hostname):
+            connection["server_hostname"] = server_hostname
+            return FakeSSLSocket()
+
+    def connect(address, port, timeout=None):
+        connection["address"] = address
+        connection["port"] = port
+        return FakeSocket()
+
+    monkeypatch.setattr(tls_scanner_module, "validate_target_url", lambda url: ("93.184.216.34",))
+    monkeypatch.setattr(tls_scanner_module, "connect_validated_address", connect)
+    monkeypatch.setattr(tls_scanner_module.ssl, "create_default_context", FakeContext)
+
+    findings = TLSScanner().scan("https://safe.example/")
+
+    assert connection == {
+        "address": "93.184.216.34",
+        "port": 443,
+        "server_hostname": "safe.example",
+    }
+    assert findings[0]["type"] == "tls_version"
 
 
 @pytest.mark.parametrize("protocol", sorted(WEAK_PROTOCOLS))

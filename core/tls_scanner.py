@@ -2,7 +2,8 @@
 
 Opens one ordinary TLS handshake, as a browser would, and reads back what the
 server discloses. It does not list cipher suites. The HSTS header check lives
-in the recon module. Uses only the standard library (``ssl`` and ``socket``).
+in the recon module. The handshake uses ``ssl`` and ``socket``; public-mode
+target connections go through the shared network policy.
 """
 
 __author__ = "Kavalu Labs"
@@ -12,6 +13,8 @@ import ssl
 from datetime import datetime, timezone
 from typing import Dict, List, Any
 from urllib.parse import urlparse
+
+from .network_policy import connect_validated_address, validate_target_url
 
 # Protocol versions considered weak/deprecated as of 2026.
 WEAK_PROTOCOLS = {"SSLv2", "SSLv3", "TLSv1", "TLSv1.1"}
@@ -51,10 +54,25 @@ class TLSScanner:
 
         try:
             ctx = ssl.create_default_context()
-            with socket.create_connection((hostname, port), timeout=timeout) as sock:
-                with ctx.wrap_socket(sock, server_hostname=hostname) as ssock:
-                    cert = ssock.getpeercert()
-                    protocol = ssock.version()
+            addresses = validate_target_url(target_url)
+            connect_addresses = (hostname,) if addresses is None else addresses
+            last_connection_error = None
+            for address in connect_addresses:
+                try:
+                    if addresses is None:
+                        sock = socket.create_connection((address, port), timeout=timeout)
+                    else:
+                        sock = connect_validated_address(address, port, timeout=timeout)
+                except OSError as error:
+                    last_connection_error = error
+                    continue
+                with sock:
+                    with ctx.wrap_socket(sock, server_hostname=hostname) as ssock:
+                        cert = ssock.getpeercert()
+                        protocol = ssock.version()
+                break
+            else:
+                raise last_connection_error or OSError("No target addresses could be connected.")
 
             findings.extend(self._check_protocol(protocol))
             findings.extend(self._check_certificate(cert, hostname))

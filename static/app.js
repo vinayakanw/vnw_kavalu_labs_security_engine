@@ -121,7 +121,7 @@ async function fetchJson(path, options) {
 /* --------------------------------------------------------------- scan form */
 
 function selectedModules() {
-    return [...document.querySelectorAll('input[name="module"]:checked')].map((input) => input.value);
+    return [...document.querySelectorAll('input[name="module"]:checked:not(:disabled)')].map((input) => input.value);
 }
 
 function setAllModules(checked) {

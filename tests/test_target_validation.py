@@ -22,12 +22,12 @@ def network(monkeypatch):
     seen = {}
     monkeypatch.setattr(scanner_module.socket, "getaddrinfo", lambda *a, **k: [("ok",)])
 
-    def fake_get(url, **kwargs):
+    def fake_get(method, url, **kwargs):
         seen["url"] = url
         seen["kwargs"] = kwargs
         return fake_response()
 
-    monkeypatch.setattr(scanner_module.requests, "get", fake_get)
+    monkeypatch.setattr(scanner_module, "guarded_request", fake_get)
     return seen
 
 
@@ -83,7 +83,7 @@ def _raise(exc):
     ],
 )
 def test_connection_problems_are_reported(network, monkeypatch, exc, needle):
-    monkeypatch.setattr(scanner_module.requests, "get", _raise(exc))
+    monkeypatch.setattr(scanner_module, "guarded_request", _raise(exc))
     ok, message, _ = validate("https://example.com")
     assert ok is False
     assert needle in message.lower()
@@ -91,20 +91,20 @@ def test_connection_problems_are_reported(network, monkeypatch, exc, needle):
 
 def test_bad_certificate_is_still_a_valid_scan_target(network, monkeypatch):
     # A broken TLS setup is exactly the kind of site this tool should audit.
-    monkeypatch.setattr(scanner_module.requests, "get", _raise(requests.exceptions.SSLError("bad cert")))
+    monkeypatch.setattr(scanner_module, "guarded_request", _raise(requests.exceptions.SSLError("bad cert")))
     assert validate("https://self-signed.example") == (True, "", None)
 
 
 @pytest.mark.parametrize("status", [500, 502, 503, 504])
 def test_server_errors_block_the_scan(network, monkeypatch, status):
-    monkeypatch.setattr(scanner_module.requests, "get", lambda *a, **k: fake_response(status, "Err"))
+    monkeypatch.setattr(scanner_module, "guarded_request", lambda *a, **k: fake_response(status, "Err"))
     ok, message, code = validate("https://example.com")
     assert (ok, code) == (False, status)
     assert str(status) in message
 
 
 def test_404_on_root_blocks_but_404_on_deep_path_does_not(network, monkeypatch):
-    monkeypatch.setattr(scanner_module.requests, "get", lambda *a, **k: fake_response(404, "Not Found"))
+    monkeypatch.setattr(scanner_module, "guarded_request", lambda *a, **k: fake_response(404, "Not Found"))
     assert validate("https://example.com/")[0] is False
     assert validate("https://example.com/some/deep/path")[0] is True
 

@@ -27,6 +27,7 @@ from .burp_integration import BurpIntegration
 from .recon_attribution import TargetAttribution
 from .tls_scanner import TLSScanner
 from .plugin_model import ExternalModelPlugin
+from .network_policy import TargetPolicyError, guarded_request, validate_target_url
 from .paths import ensure_dirs, scan_state_path
 from . import owasp_mapping
 from . import detection_engine
@@ -88,31 +89,40 @@ class SecurityScanner:
                 None,
             )
 
+        try:
+            validated_addresses = validate_target_url(target_url)
+        except TargetPolicyError as error:
+            return False, str(error), None
+
         # 1. DNS Resolution Check
         port = parsed.port or (443 if parsed.scheme == "https" else 80)
-        try:
-            socket.getaddrinfo(hostname, port, socket.AF_UNSPEC, socket.SOCK_STREAM)
-        except socket.gaierror:
-            return (
-                False,
-                f"Target domain '{hostname}' could not be resolved (DNS lookup failed). "
-                f"The domain does not exist, is misspelled, or has no active DNS records. "
-                f"Please verify that your domain name is valid and currently online.",
-                None,
-            )
-        except Exception:
-            logging.getLogger(__name__).exception("Unexpected DNS resolution error for target host")
-            return False, "A network error occurred while validating the target. Please try again.", None
+        if validated_addresses is None:
+            try:
+                socket.getaddrinfo(hostname, port, socket.AF_UNSPEC, socket.SOCK_STREAM)
+            except socket.gaierror:
+                return (
+                    False,
+                    f"Target domain '{hostname}' could not be resolved (DNS lookup failed). "
+                    f"The domain does not exist, is misspelled, or has no active DNS records. "
+                    f"Please verify that your domain name is valid and currently online.",
+                    None,
+                )
+            except Exception:
+                logging.getLogger(__name__).exception("Unexpected DNS resolution error for target host")
+                return False, "A network error occurred while validating the target. Please try again.", None
 
         # 2. Reachability & Connection Check
         try:
-            resp = requests.get(
+            resp = guarded_request(
+                "get",
                 target_url,
                 timeout=8,
                 verify=False,
                 allow_redirects=True,
                 headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) KavaluSecurityEngine/2.0"},
             )
+        except TargetPolicyError as error:
+            return False, str(error), None
         except requests.exceptions.SSLError:
             # Server responded, but SSL certificate has an issue (self-signed/expired).
             # This is a valid live target to scan for vulnerabilities.
@@ -434,7 +444,8 @@ class SecurityScanner:
 
         try:
             # Request to target
-            response = requests.get(
+            response = guarded_request(
+                "get",
                 target_url,
                 proxies=proxies,
                 timeout=30,

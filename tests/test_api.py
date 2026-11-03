@@ -1,5 +1,7 @@
 """HTTP API contract, exercised through Flask's test client (no real server)."""
 
+import base64
+
 import pytest
 
 import app as app_module
@@ -17,7 +19,7 @@ def test_owasp_reference_endpoint_lists_all_ten_categories(client):
 
 
 def test_history_endpoint_is_intentionally_empty(client):
-    """The server stores no global history (privacy by design); it doubles as the health check."""
+    """The server stores no global history (privacy by design)."""
     assert client.get("/api/history").get_json() == []
 
 
@@ -29,6 +31,102 @@ def test_preflight_request_is_answered_without_hitting_a_route_handler(client):
     response = client.options("/api/scan")
     assert response.headers["Access-Control-Allow-Origin"] == "*"
     assert "POST" in response.headers["Access-Control-Allow-Methods"]
+
+
+def enable_public_mode(monkeypatch):
+    monkeypatch.setitem(app_module.app.config, "PUBLIC_MODE", True)
+    monkeypatch.setitem(app_module.app.config, "API_USERNAME", "scanner-operator")
+    monkeypatch.setitem(app_module.app.config, "API_PASSWORD", "a-test-only-password")
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("get", "/"),
+        ("get", "/api/history"),
+        ("get", "/api/scan/status/missing"),
+        ("get", "/api/scan/stream/missing"),
+        ("post", "/api/scan"),
+        ("options", "/api/scan"),
+    ],
+)
+def test_public_routes_require_authentication(client, monkeypatch, method, path):
+    enable_public_mode(monkeypatch)
+    response = getattr(client, method)(path, json={} if method == "post" else None)
+    assert response.status_code == 401
+    assert response.headers["WWW-Authenticate"].startswith("Basic ")
+    assert "Access-Control-Allow-Origin" not in response.headers
+
+
+@pytest.mark.parametrize("path", ["/", "/api/history"])
+def test_public_mode_allows_configured_credentials_without_wildcard_cors(client, monkeypatch, path):
+    enable_public_mode(monkeypatch)
+    token = base64.b64encode(b"scanner-operator:a-test-only-password").decode("ascii")
+    response = client.get(path, headers={"Authorization": f"Basic {token}"})
+    assert response.status_code == 200
+    assert "Access-Control-Allow-Origin" not in response.headers
+    if path == "/":
+        assert b'value="browser" disabled' in response.data
+        assert b'value="burp" disabled' in response.data
+
+
+def test_public_health_check_does_not_require_authentication(client, monkeypatch):
+    enable_public_mode(monkeypatch)
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.get_json() == {"status": "ok"}
+
+
+def test_public_scan_defaults_browser_automation_off(client, monkeypatch):
+    enable_public_mode(monkeypatch)
+    captured = {}
+    token = base64.b64encode(b"scanner-operator:a-test-only-password").decode("ascii")
+    headers = {"Authorization": f"Basic {token}"}
+    monkeypatch.setattr(app_module.scanner, "validate_target", lambda url: (True, "", 200))
+    monkeypatch.setattr(app_module.scanner, "scan", lambda **kwargs: captured.update(kwargs) or {"scan_id": "test"})
+
+    response = client.post("/api/scan", json={"url": "https://safe.example/"}, headers=headers)
+
+    assert response.status_code == 200
+    assert captured["use_selenium"] is False
+
+
+@pytest.mark.parametrize(
+    ("body", "error"),
+    [
+        ({"url": "https://safe.example/", "use_selenium": True}, "Browser automation"),
+        ({"url": "https://safe.example/", "use_burp": True}, "Burp integration"),
+    ],
+)
+def test_public_scan_rejects_unsupported_network_integrations(client, monkeypatch, body, error):
+    enable_public_mode(monkeypatch)
+    token = base64.b64encode(b"scanner-operator:a-test-only-password").decode("ascii")
+    response = client.post("/api/scan", json=body, headers={"Authorization": f"Basic {token}"})
+    assert response.status_code == 400
+    assert error in response.get_json()["error"]
+
+
+def test_public_mode_fails_startup_when_credentials_or_targets_are_missing(monkeypatch):
+    monkeypatch.setitem(app_module.app.config, "PUBLIC_MODE", True)
+    monkeypatch.setitem(app_module.app.config, "API_USERNAME", "")
+    monkeypatch.setitem(app_module.app.config, "API_PASSWORD", "test-password")
+    monkeypatch.setenv("KAVALU_ALLOWED_TARGETS", "example.com")
+    with pytest.raises(RuntimeError, match="KAVALU_API_USERNAME"):
+        app_module._validate_public_configuration()
+
+    monkeypatch.setitem(app_module.app.config, "API_USERNAME", "scanner-operator")
+    monkeypatch.setitem(app_module.app.config, "API_PASSWORD", "")
+    with pytest.raises(RuntimeError, match="KAVALU_API_PASSWORD"):
+        app_module._validate_public_configuration()
+
+    monkeypatch.setitem(app_module.app.config, "API_PASSWORD", "test-password")
+    monkeypatch.setenv("KAVALU_ALLOWED_TARGETS", "")
+    with pytest.raises(RuntimeError, match="KAVALU_ALLOWED_TARGETS"):
+        app_module._validate_public_configuration()
+
+    monkeypatch.setenv("KAVALU_ALLOWED_TARGETS", "not a valid host")
+    with pytest.raises(RuntimeError, match="KAVALU_ALLOWED_TARGETS is invalid"):
+        app_module._validate_public_configuration()
 
 
 @pytest.mark.parametrize("body", [{}, {"url": ""}, {"url": "   "}])

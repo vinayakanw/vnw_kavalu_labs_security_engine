@@ -1,10 +1,10 @@
 # API reference
 
 Base URL: wherever you run the engine, e.g. `http://127.0.0.1:5000`.
-Every response carries `Access-Control-Allow-Origin: *`.
+In local mode, responses carry `Access-Control-Allow-Origin: *`. Public mode omits CORS headers.
 
-> **There is no authentication.** Anyone who can reach the API can start scans from your server.
-> Read [SECURITY.md](../SECURITY.md#deploying-safely) before exposing it beyond localhost.
+> Local mode has no authentication. Public mode requires HTTP Basic authentication. Read
+> [SECURITY.md](../SECURITY.md#deploying-safely) before exposing the service beyond localhost.
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -15,11 +15,12 @@ Every response carries `Access-Control-Allow-Origin: *`.
 | `GET` | `/api/scan/stream/<scan_id>` | [Live progress (SSE)](#live-progress-sse) |
 | `GET` | `/api/report/<scan_id>` | [Download a report](#download-a-report) |
 | `GET` | `/api/owasp-top10` | OWASP Top 10:2021 reference data |
-| `GET` | `/api/history` | Always `[]` (also used as the health check) |
+| `GET` | `/api/history` | Always `[]` |
+| `GET` | `/healthz` | Minimal liveness response; does not expose scan data |
 
 ## Response headers
 
-Every response carries `Access-Control-Allow-Origin: *` (see the warning above) and these security headers:
+Responses carry `Access-Control-Allow-Origin: *` only in local mode, and include these security headers:
 
 | Header | Value |
 |---|---|
@@ -36,7 +37,7 @@ Every response carries `Access-Control-Allow-Origin: *` (see the warning above) 
 |---|---|---|---|
 | `url` | string | **required** | `https://` is assumed when no scheme is given. |
 | `scan_types` | array of string | `["all"]` | `recon`, `owasp`, `tls`, `browser`, `misconfig`, `burp`, `vulnerabilities` (= `owasp` + `misconfig`), `all`. See [architecture](architecture.md#scan-lifecycle). |
-| `use_selenium` | bool | `true` | Needed for the `browser` module. |
+| `use_selenium` | bool | `true` locally, `false` in public mode | Needed for the `browser` module, which is disabled in public mode. |
 | `use_burp` | bool | `false` | Needed for the `burp` module. |
 
 ```bash

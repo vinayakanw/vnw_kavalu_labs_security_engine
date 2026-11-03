@@ -180,7 +180,7 @@ Derivation and edge cases: [docs/architecture.md](docs/architecture.md#scoring).
 | `GET` | `/api/scan/stream/<scan_id>` | Live progress (Server-Sent Events) |
 | `GET` | `/api/report/<scan_id>?format=pdf\|html\|json` | Download a report (default `pdf`) |
 | `GET` | `/api/owasp-top10` | OWASP Top 10:2021 reference data |
-| `GET` | `/api/history` | Always `[]`; also the health check |
+| `GET` | `/api/history` | Always `[]` |
 
 Full reference with request/response examples, error codes and SSE events: [docs/api.md](docs/api.md).
 
@@ -243,7 +243,7 @@ make help        # list every command
 
 The project is upfront about what it does not do. The most important points:
 
-- **No authentication.** Do not expose it to untrusted users. It can be pointed at any host, including private addresses ([SECURITY.md](SECURITY.md#deploying-safely)).
+- **Local mode has no authentication** and can target private addresses. The Render blueprint enables public mode with authentication, a target allow-list, and pinned target-scan connections; use network-level egress controls as defense in depth ([SECURITY.md](SECURITY.md#deploying-safely)).
 - **Single page, no crawling, no login support.**
 - **The browser module has a 5-second budget** and usually reports a notice instead of findings; see the [roadmap](ROADMAP.md#known-bugs-and-limitations).
 - **Catch-all servers (single-page apps) can cause false positives** in the sensitive-path check.

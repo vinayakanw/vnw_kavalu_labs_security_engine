@@ -16,6 +16,8 @@ import requests
 from bs4 import BeautifulSoup
 from typing import Dict, Any, Optional
 
+from .network_policy import guarded_request
+
 
 class TargetAttribution:
     """Discovers deployment platform and author/developer attribution for a target URL."""
@@ -282,7 +284,7 @@ class TargetAttribution:
         # 3. Probe humans.txt convention
         try:
             humans_url = f"{scheme}://{hostname}/humans.txt"
-            h_resp = requests.get(humans_url, timeout=2.5, verify=False)
+            h_resp = guarded_request("get", humans_url, timeout=2.5, verify=False)
             if h_resp.status_code == 200 and h_resp.text and len(h_resp.text) < 5000:
                 h_text = h_resp.text.strip()
                 info["humans_txt_data"] = h_text[:300]

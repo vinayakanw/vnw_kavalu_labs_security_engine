@@ -9,6 +9,10 @@ The engine needs **no configuration** to run. Everything below is optional.
 | `SECRET_KEY` | random per start | Flask signing key. The app keeps no user sessions, so a random key is fine; set it anyway in production. |
 | `PORT` | `5000` (`python app.py`); `10000` (Docker image); injected by most hosts | Port for `python app.py`. Gunicorn uses its own `--bind`. |
 | `KAVALU_DATA_DIR` | project root | Root for `reports/` and `logs/`. Point it at a persistent volume in production. |
+| `KAVALU_PUBLIC_MODE` | `false` | Enables HTTP Basic authentication and public-mode scan restrictions. The Render blueprint sets this to `true`. |
+| `KAVALU_API_USERNAME` | *(unset)* | Required with `KAVALU_PUBLIC_MODE=true`. |
+| `KAVALU_API_PASSWORD` | *(unset)* | Required with `KAVALU_PUBLIC_MODE=true`; keep it secret and use HTTPS. |
+| `KAVALU_ALLOWED_TARGETS` | *(unset)* | Required with `KAVALU_PUBLIC_MODE=true`; comma-separated exact hostnames or IPs, optionally with ports. Public-mode scans are disabled unless configured. |
 | `EXTERNAL_MODEL_URL` | *(unset = plugin off)* | Endpoint of an optional ML model service. |
 | `EXTERNAL_MODEL_API_KEY` | *(unset)* | Sent as `Authorization: Bearer <key>` when set. |
 | `EXTERNAL_MODEL_TIMEOUT` | `8` | Seconds to wait for the model service. |

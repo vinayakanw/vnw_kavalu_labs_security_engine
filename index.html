@@ -57,15 +57,15 @@
               outdated JavaScript libraries, and missing Subresource Integrity.</span>
           </label>
           <label class="option">
-            <input type="checkbox" name="module" value="browser" checked>
+            <input type="checkbox" name="module" value="browser" {% if public_mode %}disabled{% else %}checked{% endif %}>
             <span><strong>Browser checks</strong>
               Headless Chromium tests for DOM-based XSS, mixed content, insecure forms and browser storage.
-              Needs Chromium installed (the Docker image has it).</span>
+              Needs Chromium installed (the Docker image has it).{% if public_mode %} Disabled in public mode.{% endif %}</span>
           </label>
           <label class="option">
-            <input type="checkbox" name="module" value="burp">
+            <input type="checkbox" name="module" value="burp" {% if public_mode %}disabled{% endif %}>
             <span><strong>Burp Suite proxy</strong>
-              Sends scan traffic through a Burp proxy at 127.0.0.1:8080. Burp must run on the same machine as the engine.</span>
+              Sends scan traffic through a Burp proxy at 127.0.0.1:8080. Burp must run on the same machine as the engine.{% if public_mode %} Disabled in public mode.{% endif %}</span>
           </label>
           <p class="actions">
             <button type="button" id="select-all" class="button secondary">Select all</button>

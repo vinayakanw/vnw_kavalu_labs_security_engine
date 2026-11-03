@@ -5,12 +5,14 @@ This module only handles HTTP. All scanning logic lives in the ``core`` package.
 
 __author__ = "Vinayaka N Walshettar"
 
+import hmac
 import io
 import os
 import secrets
 
 from flask import Flask, Response, current_app, jsonify, render_template, request, send_file
 
+from core.network_policy import configured_targets
 from core.owasp_mapping import OWASP_TOP_10
 from core.paths import ensure_dirs
 from core.report_generator import SUPPORTED_FORMATS, ReportGenerator
@@ -21,6 +23,27 @@ app = Flask(__name__, template_folder=".")
 
 # The app keeps no user sessions, so a new random key on each start is fine.
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+app.config["PUBLIC_MODE"] = os.environ.get("KAVALU_PUBLIC_MODE", "").strip().lower() == "true"
+app.config["API_USERNAME"] = os.environ.get("KAVALU_API_USERNAME", "")
+app.config["API_PASSWORD"] = os.environ.get("KAVALU_API_PASSWORD", "")
+
+
+def _validate_public_configuration():
+    if not app.config["PUBLIC_MODE"]:
+        return
+    if not app.config["API_USERNAME"].strip():
+        raise RuntimeError("KAVALU_API_USERNAME must be set when KAVALU_PUBLIC_MODE is enabled.")
+    if not app.config["API_PASSWORD"].strip():
+        raise RuntimeError("KAVALU_API_PASSWORD must be set when KAVALU_PUBLIC_MODE is enabled.")
+    try:
+        targets = configured_targets()
+    except ValueError as error:
+        raise RuntimeError("KAVALU_ALLOWED_TARGETS is invalid.") from error
+    if not targets:
+        raise RuntimeError("KAVALU_ALLOWED_TARGETS must be set when KAVALU_PUBLIC_MODE is enabled.")
+
+
+_validate_public_configuration()
 
 scanner = SecurityScanner()
 
@@ -49,10 +72,22 @@ SECURITY_HEADERS = {
 
 @app.before_request
 def handle_preflight():
-    """Answer CORS preflight requests without running a route."""
+    """Authenticate public deployments, then answer local-mode CORS preflights."""
+    if app.config["PUBLIC_MODE"] and request.path != "/healthz":
+        credentials = request.authorization
+        valid_user = credentials and hmac.compare_digest(credentials.username or "", app.config["API_USERNAME"])
+        valid_password = credentials and hmac.compare_digest(credentials.password or "", app.config["API_PASSWORD"])
+        if not (valid_user and valid_password):
+            return Response(
+                "Authentication required",
+                status=401,
+                headers={"WWW-Authenticate": 'Basic realm="Kavalu Security Engine", charset="UTF-8"'},
+            )
+
     if request.method == "OPTIONS":
         response = app.make_default_options_response()
-        response.headers.update(CORS_HEADERS)
+        if not app.config["PUBLIC_MODE"]:
+            response.headers.update(CORS_HEADERS)
         return response
     return None
 
@@ -60,7 +95,8 @@ def handle_preflight():
 @app.after_request
 def add_response_headers(response):
     """Add the CORS and security headers to every response."""
-    response.headers.update(CORS_HEADERS)
+    if not app.config["PUBLIC_MODE"]:
+        response.headers.update(CORS_HEADERS)
     for name, value in SECURITY_HEADERS.items():
         response.headers.setdefault(name, value)
     return response
@@ -69,7 +105,13 @@ def add_response_headers(response):
 @app.route("/")
 def index():
     """Serve the dashboard page."""
-    return render_template("index.html")
+    return render_template("index.html", public_mode=app.config["PUBLIC_MODE"])
+
+
+@app.route("/healthz")
+def health_check():
+    """Unauthenticated liveness endpoint for the hosting platform."""
+    return jsonify({"status": "ok"})
 
 
 @app.route("/api/scan", methods=["POST", "OPTIONS"])
@@ -79,7 +121,12 @@ def start_scan():
     target_url = (data.get("url") or "").strip()
     scan_types = data.get("scan_types", ["all"])
     use_burp = data.get("use_burp", False)
-    use_selenium = data.get("use_selenium", True)
+    use_selenium = data.get("use_selenium", not app.config["PUBLIC_MODE"])
+
+    if app.config["PUBLIC_MODE"] and use_burp:
+        return jsonify({"error": "Burp integration is disabled in public mode."}), 400
+    if app.config["PUBLIC_MODE"] and use_selenium:
+        return jsonify({"error": "Browser automation is disabled in public mode."}), 400
 
     if not target_url:
         return jsonify({"error": "Target URL is required. Please enter a valid website address."}), 400

@@ -75,9 +75,9 @@ These are properties of the current design, not bugs to report. They determine h
 
 | Property | Consequence | What to do |
 |---|---|---|
-| **No authentication or authorisation** | Anyone who can reach the API can start scans from your machine and read results for any scan ID. | Keep it on `127.0.0.1`, or put it behind an authenticating reverse proxy or VPN. |
-| **Any target is allowed, including private ones** | The scanner will happily probe `localhost`, RFC 1918 ranges and cloud metadata endpoints (for example `169.254.169.254`) **from the server it runs on**: server-side request forgery by design. | Never expose it to untrusted users. Add an egress firewall or a target allow-list before multi-user use. |
-| **`Access-Control-Allow-Origin: *`** | Any web page a user visits can call a locally running engine through their browser. | Run locally only on loopback, and do not browse untrusted sites while a local instance is running, or restrict origins at your proxy. |
+| **Local mode has no authentication or authorisation** | Anyone who can reach a local-mode API can start scans and read scan results. | Keep local mode on `127.0.0.1`, or put it behind an authenticating reverse proxy or VPN. The Render blueprint enables public mode and requires configured credentials. |
+| **Local mode allows any target, including private ones** | The scanner can probe `localhost`, RFC 1918 ranges and cloud metadata endpoints **from the server it runs on**. | Do not expose local mode to untrusted users. Public mode requires an exact host/IP allow-list, rejects non-global DNS answers and redirects, and pins target-scan HTTP/TLS connections to checked IPs. Use network-level egress controls as defense in depth. |
+| **`Access-Control-Allow-Origin: *` in local mode** | A web page can call a local-mode engine through the visitor's browser. | Run local mode only on loopback, or restrict origins at your proxy. Public mode omits CORS headers. |
 | **`python app.py` binds to `0.0.0.0`** | The unauthenticated scanner is reachable from your whole network. | Use `flask --app app run --host 127.0.0.1` or `make run`. |
 | **No rate limiting; scans are never evicted from memory** | A caller can exhaust CPU, threads or memory. | Rate-limit at the proxy; restart periodically. |
 | **Reports and state files contain target data** | PDFs and `logs/scan_state/*.json` include URLs, findings and evidence. | Treat `reports/` and `logs/` as confidential; set `KAVALU_DATA_DIR` to a protected volume; prune regularly. |
