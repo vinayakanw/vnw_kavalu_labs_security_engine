@@ -77,7 +77,7 @@ def test_scan_defaults_are_all_modules_selenium_on_burp_off(client, monkeypatch)
     assert (captured["scan_types"], captured["use_burp"], captured["use_selenium"]) == (["all"], False, True)
 
 
-def test_unexpected_scanner_error_becomes_a_500_with_a_message(client, monkeypatch):
+def test_unexpected_scanner_error_is_logged_and_returns_a_generic_500(client, monkeypatch, caplog):
     monkeypatch.setattr(app_module.scanner, "validate_target", lambda url: (True, "", 200))
 
     def explode(**kwargs):
@@ -86,7 +86,8 @@ def test_unexpected_scanner_error_becomes_a_500_with_a_message(client, monkeypat
     monkeypatch.setattr(app_module.scanner, "scan", explode)
     response = client.post("/api/scan", json={"url": "https://example.com"})
     assert response.status_code == 500
-    assert response.get_json() == {"error": "kaboom"}
+    assert response.get_json() == {"error": "An unexpected error occurred while starting the scan."}
+    assert "Unexpected error while starting scan" in caplog.text
 
 
 def test_unknown_scan_status_is_http_200_with_an_error_body(client):

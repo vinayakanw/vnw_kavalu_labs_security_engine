@@ -136,11 +136,11 @@ class TargetAttribution:
                             detected_platform = "Cloudflare"
                         elif "amazonaws" in rdns_lower or "cloudfront" in rdns_lower:
                             detected_platform = "AWS Infrastructure"
-                        elif "google" in rdns_lower or "1e100.net" in rdns_lower:
+                        elif "google" in rdns_lower or rdns_lower == "1e100.net" or rdns_lower.endswith(".1e100.net"):
                             detected_platform = "Google Cloud Infrastructure"
                         elif "digitalocean" in rdns_lower:
                             detected_platform = "DigitalOcean"
-                        elif "github.io" in rdns_lower:
+                        elif rdns_lower == "github.io" or rdns_lower.endswith(".github.io"):
                             detected_platform = "GitHub Pages"
             except Exception:
                 info["reverse_dns"] = "PTR record not configured"

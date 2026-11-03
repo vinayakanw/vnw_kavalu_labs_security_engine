@@ -24,6 +24,7 @@ __author__ = "Vinayaka N Walshettar"
 
 import os
 import tempfile
+import uuid
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 
@@ -85,4 +86,8 @@ def report_path(filename: str) -> str:
 
 def scan_state_path(scan_id: str) -> str:
     """Absolute path of the state file backing a given scan id."""
-    return os.path.join(SCAN_STATE_DIR, f"scan_{scan_id}.json")
+    try:
+        normalized_id = str(uuid.UUID(scan_id))
+    except (AttributeError, TypeError, ValueError) as error:
+        raise ValueError("Invalid scan ID") from error
+    return os.path.join(SCAN_STATE_DIR, f"scan_{normalized_id}.json")

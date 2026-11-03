@@ -9,7 +9,7 @@ import io
 import os
 import secrets
 
-from flask import Flask, Response, jsonify, render_template, request, send_file
+from flask import Flask, Response, current_app, jsonify, render_template, request, send_file
 
 from core.owasp_mapping import OWASP_TOP_10
 from core.paths import ensure_dirs
@@ -97,8 +97,9 @@ def start_scan():
             use_selenium=use_selenium,
         )
         return jsonify(results)
-    except Exception as error:
-        return jsonify({"error": str(error)}), 500
+    except Exception:
+        current_app.logger.exception("Unexpected error while starting scan")
+        return jsonify({"error": "An unexpected error occurred while starting the scan."}), 500
 
 
 @app.route("/api/scan/status/<scan_id>")
@@ -157,10 +158,11 @@ def generate_report(scan_id):
 
         filename, mimetype, payload = ReportGenerator.build_download(scan_id, format_type)
         return send_file(io.BytesIO(payload), mimetype=mimetype, as_attachment=True, download_name=filename)
-    except ValueError as error:  # unknown scan_id
-        return jsonify({"error": str(error)}), 404
-    except Exception as error:
-        return jsonify({"error": str(error)}), 500
+    except ValueError:
+        return jsonify({"error": "Scan not found"}), 404
+    except Exception:
+        current_app.logger.exception("Unexpected error while generating report")
+        return jsonify({"error": "An unexpected error occurred while generating the report."}), 500
 
 
 @app.route("/api/history")

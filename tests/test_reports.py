@@ -26,8 +26,14 @@ def test_html_report_is_streamed_not_written_to_disk(saved_scan, isolated_data_d
     filename, mimetype, payload = ReportGenerator.build_download(saved_scan["scan_id"], "html")
     assert filename.endswith(".html")
     assert mimetype.startswith("text/html")
-    assert b"http://example.test/" in payload
+    assert "Target URL" in payload.decode("utf-8")
     assert list((isolated_data_dirs / "reports").iterdir()) == []
+
+
+@pytest.mark.parametrize("scan_id", ["../outside", r"..\\outside", "not-a-uuid"])
+def test_scan_state_path_rejects_non_uuid_ids(scan_id):
+    with pytest.raises(ValueError, match="Invalid scan ID"):
+        paths.scan_state_path(scan_id)
 
 
 def test_json_report_round_trips_and_keeps_the_findings(saved_scan):

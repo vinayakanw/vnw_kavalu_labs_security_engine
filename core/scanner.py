@@ -11,6 +11,7 @@ __author__ = "Kavalu Labs"
 import requests
 import uuid
 import json
+import logging
 import os
 import time
 import socket
@@ -76,8 +77,8 @@ class SecurityScanner:
 
         try:
             parsed = urlparse(target_url)
-        except Exception as e:
-            return False, f"Invalid URL format: {str(e)}", None
+        except Exception:
+            return False, "Invalid URL format. Please provide a valid web address.", None
 
         hostname = parsed.hostname
         if not hostname:
@@ -99,8 +100,9 @@ class SecurityScanner:
                 f"Please verify that your domain name is valid and currently online.",
                 None,
             )
-        except Exception as dns_err:
-            return False, f"Network/DNS error resolving '{hostname}': {str(dns_err)}", None
+        except Exception:
+            logging.getLogger(__name__).exception("Unexpected DNS resolution error for target host")
+            return False, "A network error occurred while validating the target. Please try again.", None
 
         # 2. Reachability & Connection Check
         try:
@@ -138,8 +140,9 @@ class SecurityScanner:
                 f"Please ensure the target website is online and responsive.",
                 None,
             )
-        except requests.exceptions.RequestException as req_err:
-            return False, f"Connection error while reaching '{hostname}': {str(req_err)}", None
+        except requests.exceptions.RequestException:
+            logging.getLogger(__name__).exception("Unexpected connection error while validating target")
+            return False, "A network error occurred while validating the target. Please try again.", None
 
         # 3. Server HTTP error response check
         if resp.status_code in (500, 502, 503, 504):
@@ -700,7 +703,10 @@ class SecurityScanner:
             return self.active_scans[scan_id]
 
         # Check the persisted per-scan state file
-        state_file = scan_state_path(scan_id)
+        try:
+            state_file = scan_state_path(scan_id)
+        except ValueError:
+            return {"error": "Scan not found"}
         if os.path.exists(state_file):
             try:
                 with open(state_file, "r", encoding="utf-8") as rf:

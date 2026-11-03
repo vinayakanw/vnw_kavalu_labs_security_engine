@@ -22,7 +22,7 @@ from reportlab.lib.enums import TA_CENTER
 from datetime import datetime
 import json
 import os
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from .owasp_mapping import OWASP_TOP_10, build_coverage_matrix
 from .detection_engine import score_findings
@@ -211,7 +211,12 @@ class ReportGenerator:
         return scan_data
 
     @staticmethod
-    def _load_scan_data(scan_id: str) -> Dict[str, Any]:
+    def _load_scan_data(scan_id: str) -> Optional[Dict[str, Any]]:
+        try:
+            state_file = scan_state_path(scan_id)
+        except ValueError:
+            return None
+
         # 1. Check in-memory active scans
         try:
             import app as app_mod
@@ -224,7 +229,6 @@ class ReportGenerator:
             pass
 
         # 2. Check the persisted per-scan state file
-        state_file = scan_state_path(scan_id)
         if os.path.exists(state_file):
             try:
                 with open(state_file, "r", encoding="utf-8") as rf:

@@ -79,7 +79,7 @@ def _raise(exc):
         (requests.exceptions.ConnectionError("Connection refused"), "refused"),
         (requests.exceptions.ConnectionError("Network is unreachable"), "cannot connect"),
         (requests.exceptions.Timeout("slow"), "timed out"),
-        (requests.exceptions.RequestException("weird"), "connection error"),
+        (requests.exceptions.RequestException("weird"), "network error"),
     ],
 )
 def test_connection_problems_are_reported(network, monkeypatch, exc, needle):

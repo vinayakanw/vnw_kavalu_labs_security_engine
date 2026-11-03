@@ -43,10 +43,14 @@ def test_page_loads_only_its_own_static_files():
 
 
 def test_page_has_no_inline_scripts_styles_or_event_handlers():
-    assert not re.search(r"<script(?![^>]*\bsrc=)[^>]*>\s*\S", HTML), "inline <script> found"
+    assert not re.search(r"<script(?![^>]*\bsrc=)[^>]*>\s*\S", HTML, re.IGNORECASE), "inline <script> found"
     assert "<style" not in HTML, "inline <style> found"
     assert not re.search(r"\sstyle=", HTML), "inline style attribute found"
     assert not re.search(r"\son[a-z]+=", HTML), "inline event handler found"
+
+
+def test_inline_script_check_is_case_insensitive():
+    assert re.search(r"<script(?![^>]*\bsrc=)[^>]*>\s*\S", "<SCRIPT>alert(1)</SCRIPT>", re.IGNORECASE)
 
 
 def test_page_basics_for_accessibility():
